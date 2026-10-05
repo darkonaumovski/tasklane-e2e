@@ -21,7 +21,7 @@ jobs:
     # Only for this label, and only for branches in this repository (a fork's
     # branch can't be pushed to with this token).
     if: github.event.label.name == 'update-snapshots' && github.event.pull_request.head.repo.full_name == github.repository
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v5

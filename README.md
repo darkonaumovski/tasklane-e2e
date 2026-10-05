@@ -75,7 +75,7 @@ tests/
 
 **Visual regression.** `specs/visual/` compares screenshots with baselines committed next to the spec (`*.spec.ts-snapshots/*-linux.png`). It runs in its own `visual` project on Desktop Chrome only, with mocked data so every render is identical. Fonts and anti-aliasing differ between operating systems, so baselines are rendered on Linux, the same OS as CI, and the tests are skipped on Windows and macOS.
 
-To create or refresh baselines after an intended UI change, add the **`update-snapshots`** label to the pull request. `.github/workflows/update-snapshots.yml` renders them on `ubuntu-latest`, commits them to the PR branch and removes the label. Review the PNG diff in the PR, then pull the commit.
+To create or refresh baselines after an intended UI change, add the **`update-snapshots`** label to the pull request. `.github/workflows/update-snapshots.yml` renders them on `ubuntu-24.04`, commits them to the PR branch and removes the label. Review the PNG diff in the PR, then pull the commit.
 
 **Isolation.** Every test runs fully in parallel. A fixture sends an `x-test-namespace` header unique to the test, and the server keeps separate data per namespace. An auto fixture calls `POST /api/reset` before each test, so retries also start clean. No test depends on another or on execution order.
 

@@ -1,0 +1,71 @@
+name: Update visual baselines
+
+# Renders visual-regression baselines on Linux (the same OS as the test workflow) and
+# commits them to the pull request branch. Trigger it by adding the `update-snapshots`
+# label to a PR; the label is removed when the job finishes. Review the committed PNGs
+# in the PR diff like any other change.
+on:
+  pull_request:
+    types: [labeled]
+
+permissions:
+  contents: write
+  pull-requests: write
+  actions: write # to start the test workflow after committing baselines
+
+concurrency:
+  group: update-snapshots-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  update:
+    # Only for this label, and only for branches in this repository (a fork's
+    # branch can't be pushed to with this token).
+    if: github.event.label.name == 'update-snapshots' && github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ github.head_ref }}
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: lts/*
+          cache: npm
+
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+
+      # Writes new or changed baselines; tests that already match are left alone.
+      - name: Render baselines
+        run: npx playwright test --project=visual --update-snapshots=changed
+
+      - name: Commit baselines
+        id: commit
+        run: |
+          git add 'tests/**/*-snapshots/*.png'
+          if git diff --cached --quiet; then
+            echo "Baselines already up to date."
+          else
+            git config user.name 'github-actions[bot]'
+            git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+            git commit -m 'Update visual baselines (Linux)'
+            git push
+            echo "pushed=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      # A push made with GITHUB_TOKEN deliberately triggers no workflows (to prevent loops),
+      # so the test workflow would never see the new baselines. workflow_dispatch is the
+      # documented exception: start it explicitly on the PR branch.
+      - name: Run the test workflow against the new baselines
+        if: steps.commit.outputs.pushed == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh workflow run playwright.yml --ref ${{ github.head_ref }}
+
+      - name: Remove the label
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh pr edit ${{ github.event.pull_request.number }} --remove-label update-snapshots

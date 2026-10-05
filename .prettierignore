@@ -1,0 +1,7 @@
+# The app under test keeps its own compact style; only the test framework is formatted.
+app/
+node_modules/
+package-lock.json
+playwright-report/
+test-results/
+playwright/.auth/

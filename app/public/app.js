@@ -17,7 +17,9 @@ function el(tag, attrs = {}, ...children) {
 
 async function api(method, url, body) {
   const headers = body ? { 'Content-Type': 'application/json' } : undefined;
-  const res = await fetch(url, { method, headers, body: body && JSON.stringify(body) });
+  const res = await fetch(url, { method, headers, body: body && JSON.stringify(body) }).catch(() => {
+    throw new Error('Network error. Check your connection and try again.');
+  });
   if (res.status === 401 && url !== '/api/login') show('login');
   const data = res.status === 204 ? null : await res.json().catch(() => null);
   if (!res.ok) throw new Error(data?.error || `Request failed (${res.status})`);

@@ -4,10 +4,19 @@ on:
   push:
     branches: [main]
   pull_request:
+  workflow_dispatch:
+
+# A newer push to the same branch or PR cancels the run it supersedes.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
 
 jobs:
   e2e:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v5
@@ -17,22 +26,29 @@ jobs:
           node-version: lts/*
           cache: npm
 
+      # Deterministic install from package-lock.json.
       - name: Install dependencies
         run: npm ci
 
-      # Only the browsers the config uses (Pixel 7 runs on Chromium), plus their OS libraries.
+      # Browsers are not cached on purpose: Playwright's guidance is that restoring the
+      # cache takes about as long as downloading, and OS dependencies must be installed anyway.
       - name: Install Playwright browsers
         run: npx playwright install --with-deps chromium firefox
 
-      - name: Type-check
-        run: npm run typecheck
+      # Type-check, lint and format check: fast, so they fail before the slow browser run.
+      - name: Static checks
+        run: npm run check
 
-      # CI=true is set by GitHub, so the config turns on retries, forbidOnly and a fresh server.
-      # No .env is needed: the app and tests fall back to .env.example.
+      # CI=true (set by GitHub) turns on retries, forbidOnly, the `github` reporter and a fresh
+      # server. Credentials come from .env.example; for a real environment, map secrets instead:
+      #   env:
+      #     BASE_URL: ${{ vars.STAGING_URL }}
+      #     TEST_USER_EMAIL: ${{ secrets.TEST_USER_EMAIL }}
+      #     TEST_USER_PASSWORD: ${{ secrets.TEST_USER_PASSWORD }}
       - name: Run Playwright tests
         run: npm test
 
-      # Upload the HTML report even when tests fail; that's when you need it most.
+      # The HTML report embeds traces, screenshots and videos of failed tests.
       - name: Upload HTML report
         uses: actions/upload-artifact@v4
         if: ${{ !cancelled() }}

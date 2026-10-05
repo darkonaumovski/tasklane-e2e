@@ -1,10 +1,13 @@
 import { defineConfig, devices } from '@playwright/test';
 import { env, paths } from './tests/config/env';
 
-/** Browser projects run everything under tests/specs except the browser-free API specs. */
+/**
+ * Browser projects run everything under tests/specs except the browser-free API specs
+ * and the visual specs, which have their own single-browser project.
+ */
 const browserProject = {
   testDir: './tests/specs',
-  testIgnore: 'api/**',
+  testIgnore: ['api/**', 'visual/**'],
   dependencies: ['setup'],
 };
 
@@ -53,6 +56,14 @@ export default defineConfig({
       name: 'mobile-chrome',
       ...browserProject,
       use: { ...devices['Pixel 7'], storageState: paths.storageState },
+    },
+    // Screenshots differ per browser, so one browser keeps baselines maintainable.
+    // Baselines live next to the spec in *.spec.ts-snapshots/ and are Linux-only.
+    {
+      name: 'visual',
+      testDir: './tests/specs/visual',
+      dependencies: ['setup'],
+      use: { ...devices['Desktop Chrome'], storageState: paths.storageState },
     },
   ],
 

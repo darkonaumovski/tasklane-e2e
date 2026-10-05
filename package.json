@@ -13,6 +13,7 @@
     "test:api": "playwright test --project=api",
     "test:mocked": "playwright test --grep @mocked",
     "test:a11y": "playwright test --grep @a11y",
+    "test:visual": "playwright test --project=visual",
     "test:ui": "playwright test --ui",
     "test:headed": "playwright test --headed",
     "test:debug": "playwright test --debug",

@@ -28,6 +28,8 @@ export default defineConfig(
       'playwright/no-raw-locators': 'error',
       'playwright/prefer-web-first-assertions': 'error',
       'playwright/no-useless-await': 'error',
+      // A bare test.skip() hides a test; a conditional one with a reason is a documented decision.
+      'playwright/no-skipped-test': ['warn', { allowConditional: true }],
     },
   },
 );

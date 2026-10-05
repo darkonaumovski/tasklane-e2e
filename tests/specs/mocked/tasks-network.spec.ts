@@ -1,28 +1,14 @@
-import type { Page, Route } from '@playwright/test';
 import { TaskListSchema } from '../../api/schemas';
 import { seedTitles } from '../../data/seed-tasks';
 import { buildTask } from '../../factories/task.factory';
 import { test, expect } from '../../fixtures';
+import { routeTaskList } from '../../mocks/task-routes';
 
 /**
  * Mocked UI tests: the browser's network calls are intercepted with page.route(), so
  * these check how the front end handles responses that are hard to produce for real.
  * They do not prove the server works; the API and e2e specs do that.
- *
- * Routes belong to the test's page, which is closed after every test, so mocks never
- * leak into other tests.
  */
-
-/**
- * Intercepts only GET /api/tasks. A URL glob alone would also catch POST /api/tasks
- * and silently break "add task" in the same test, so other methods fall through.
- */
-async function routeTaskList(page: Page, handler: (route: Route) => Promise<void>) {
-  await page.route(
-    (url) => url.pathname === '/api/tasks',
-    (route) => (route.request().method() === 'GET' ? handler(route) : route.fallback()),
-  );
-}
 
 test.describe('Task list with a mocked network', { tag: '@mocked' }, () => {
   test('renders exactly the tasks the API returns', async ({ page, tasksPage }) => {

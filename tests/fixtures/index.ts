@@ -1,3 +1,4 @@
+import AxeBuilder from '@axe-core/playwright';
 import { test as base } from '@playwright/test';
 import { TasksApiClient } from '../api/TasksApiClient';
 import { env } from '../config/env';
@@ -21,7 +22,12 @@ type Fixtures = {
   tasksApi: TasksApiClient;
   /** Auto fixture: resets this test's data before it runs. */
   resetData: void;
+  /** Returns an axe scanner preconfigured with the WCAG level this project targets. */
+  makeAxeBuilder: () => AxeBuilder;
 };
+
+/** WCAG 2.1 A and AA: the level most accessibility regulations reference. */
+const WCAG_TAGS = ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'];
 
 export const test = base.extend<Fixtures>({
   // Test isolation. Every request from this test (the page's fetch calls and the
@@ -45,6 +51,11 @@ export const test = base.extend<Fixtures>({
     const api = new TasksApiClient(request);
     await api.loginAs(env.user);
     await use(api);
+  },
+
+  // A factory, not a single builder: a test may scan several states (list, then open modal).
+  makeAxeBuilder: async ({ page }, use) => {
+    await use(() => new AxeBuilder({ page }).withTags(WCAG_TAGS));
   },
 
   loginPage: async ({ page }, use) => {

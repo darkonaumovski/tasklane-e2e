@@ -25,6 +25,7 @@ Playwright starts the app automatically. To use the app yourself, run `npm start
 | `npm run test:smoke`  | Only `@smoke` tests: the critical paths, about 15 s              |
 | `npm run test:api`    | Only the API specs (no browser)                                  |
 | `npm run test:mocked` | Only the mocked-network UI specs                                 |
+| `npm run test:a11y`   | Only the axe accessibility scans (WCAG 2.1 A/AA)                 |
 | `npm run test:ui`     | Playwright UI mode: watch, filter, time-travel through steps     |
 | `npm run test:headed` | Runs with visible browsers                                       |
 | `npm run test:debug`  | Opens the Playwright Inspector to step through a test            |
@@ -65,7 +66,9 @@ tests/
 
 **Test types.** Use `api/` for status codes, contracts and negative cases; it's fast. Use `mocked/` for UI states that are hard to produce for real (errors, empty, slow, offline). Use `e2e/` for real user journeys.
 
-**Tags.** Every spec has a type tag (`@api`, `@mocked`, `@e2e`). Critical paths also carry `@smoke`. Filter with `--grep @tag`.
+**Tags.** Every spec has a type tag (`@api`, `@mocked`, `@e2e`). Critical paths also carry `@smoke`, and accessibility scans carry `@a11y`. Filter with `--grep @tag`.
+
+**Accessibility.** `specs/e2e/accessibility.spec.ts` runs axe-core against each meaningful UI state (login, login with errors, task list, open modal) using the `makeAxeBuilder` fixture, which targets WCAG 2.1 A and AA. A failure lists every violated rule, element and fix hint. Axe catches roughly a third of accessibility issues; keyboard behaviour such as modal focus is covered by explicit tests.
 
 **Isolation.** Every test runs fully in parallel. A fixture sends an `x-test-namespace` header unique to the test, and the server keeps separate data per namespace. An auto fixture calls `POST /api/reset` before each test, so retries also start clean. No test depends on another or on execution order.
 

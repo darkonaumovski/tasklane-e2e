@@ -1,0 +1,23 @@
+{
+  "name": "tasklane-e2e",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Learning project: a tiny task app plus a Playwright + TypeScript test suite.",
+  "scripts": {
+    "start": "node app/server.js",
+    "test": "playwright test",
+    "test:ui": "playwright test --ui",
+    "test:headed": "playwright test --headed",
+    "report": "playwright show-report",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "dotenv": "^18.0.5",
+    "express": "^5.2.1"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.63.0",
+    "@types/node": "^26.6.4",
+    "typescript": "^7.0.2"
+  }
+}

@@ -1,0 +1,17 @@
+{
+  // Playwright compiles the tests itself; this file is for type-checking (npm run typecheck)
+  // and for editor hints.
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "preserve",
+    "moduleResolution": "bundler",
+    "types": ["node"],
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "noImplicitOverride": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "noEmit": true
+  },
+  "include": ["playwright.config.ts", "tests/**/*.ts"]
+}

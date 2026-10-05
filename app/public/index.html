@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Tasklane</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <main>
+      <h1>Tasklane</h1>
+
+      <section id="login-view" aria-labelledby="login-heading" hidden>
+        <h2 id="login-heading">Sign in</h2>
+        <form id="login-form" data-testid="login-form" novalidate>
+          <label for="email">Email</label>
+          <input id="email" type="email" autocomplete="username" aria-describedby="email-error" data-testid="login-email" />
+          <p id="email-error" class="error" data-testid="email-error"></p>
+
+          <label for="password">Password</label>
+          <input id="password" type="password" autocomplete="current-password" aria-describedby="password-error" data-testid="login-password" />
+          <p id="password-error" class="error" data-testid="password-error"></p>
+
+          <p id="login-error" class="error" role="alert" data-testid="login-error"></p>
+          <button type="submit" data-testid="login-submit">Sign in</button>
+        </form>
+      </section>
+
+      <section id="tasks-view" aria-labelledby="tasks-heading" hidden>
+        <div class="row">
+          <h2 id="tasks-heading">My tasks</h2>
+          <button type="button" id="logout" data-testid="logout-button">Log out</button>
+        </div>
+
+        <form id="add-form" class="row" data-testid="add-task-form">
+          <label for="new-title" class="sr-only">New task</label>
+          <input id="new-title" placeholder="What needs doing?" data-testid="new-task-input" />
+          <button type="submit" data-testid="add-task-button">Add task</button>
+        </form>
+
+        <div class="row" role="search">
+          <label for="search">Search</label>
+          <input id="search" type="search" data-testid="search-input" />
+          <label for="status">Status</label>
+          <select id="status" data-testid="status-filter">
+            <option value="all">All</option>
+            <option value="open">Open</option>
+            <option value="done">Done</option>
+          </select>
+        </div>
+
+        <p id="loading" role="status" data-testid="loading" hidden>Loading tasks…</p>
+        <p id="tasks-error" class="error" role="alert" data-testid="tasks-error"></p>
+        <ul id="task-list" aria-label="Tasks" aria-busy="true" data-testid="task-list"></ul>
+        <p id="empty" data-testid="empty-state" hidden>No tasks match.</p>
+      </section>
+    </main>
+
+    <dialog id="confirm-dialog" aria-labelledby="confirm-title" data-testid="confirm-dialog">
+      <form method="dialog">
+        <h2 id="confirm-title">Delete task?</h2>
+        <p id="confirm-text" data-testid="confirm-text"></p>
+        <button value="cancel" data-testid="confirm-cancel">Cancel</button>
+        <button value="confirm" class="danger" data-testid="confirm-delete">Delete</button>
+      </form>
+    </dialog>
+
+    <script src="/app.js"></script>
+  </body>
+</html>

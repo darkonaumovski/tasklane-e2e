@@ -1,9 +1,8 @@
 import { TasksApiClient } from '../../api/TasksApiClient';
-import { assertIsTask, assertIsTaskList } from '../../api/task-contract';
+import { ApiErrorSchema, parseBody, TaskListSchema, TaskSchema } from '../../api/schemas';
 import { env } from '../../config/env';
 import { seedTask, seedTitles } from '../../data/seed-tasks';
 import { test, expect } from '../../fixtures';
-import type { ApiError } from '../../types/task';
 
 /**
  * Pure API tests: no browser. They run in milliseconds, so this is the place for
@@ -29,7 +28,7 @@ test.describe('Tasks API', { tag: '@api' }, () => {
       const response = await new TasksApiClient(request).login({ email: env.user.email, password: 'wrong-password' });
 
       expect(response.status()).toBe(401);
-      expect((await response.json()) as ApiError).toEqual({ error: 'Invalid email or password' });
+      expect(await parseBody(ApiErrorSchema, response)).toEqual({ error: 'Invalid email or password' });
       expect(response.headers()['set-cookie']).toBeUndefined();
     });
 
@@ -48,27 +47,23 @@ test.describe('Tasks API', { tag: '@api' }, () => {
 
       expect(response.status()).toBe(200);
       expect(response.headers()['content-type']).toContain('application/json');
-      const body: unknown = await response.json();
-      assertIsTaskList(body);
-      expect(body.map((task) => task.title)).toEqual(seedTitles);
+      const tasks = await parseBody(TaskListSchema, response);
+      expect(tasks.map((task) => task.title)).toEqual(seedTitles);
     });
 
     test('a task can be created, updated and deleted', async ({ tasksApi }) => {
       const created = await test.step('POST creates the task', async () => {
         const response = await tasksApi.create({ title: '  From the API  ' });
         expect(response.status()).toBe(201);
-        const body: unknown = await response.json();
-        assertIsTask(body);
-        expect(body).toMatchObject({ title: 'From the API', done: false, attachment: null });
-        return body;
+        const task = await parseBody(TaskSchema, response);
+        expect(task).toMatchObject({ title: 'From the API', done: false, attachment: null });
+        return task;
       });
 
       await test.step('PUT updates only the given fields', async () => {
         const response = await tasksApi.update(created.id, { done: true });
         expect(response.status()).toBe(200);
-        const body: unknown = await response.json();
-        assertIsTask(body);
-        expect(body).toEqual({ ...created, done: true });
+        expect(await parseBody(TaskSchema, response)).toEqual({ ...created, done: true });
       });
 
       await test.step('DELETE removes it, and a second DELETE finds nothing', async () => {
@@ -86,7 +81,7 @@ test.describe('Tasks API', { tag: '@api' }, () => {
         await tasksApi.update(existing.id, { title: '' }),
       ]) {
         expect(response.status()).toBe(400);
-        expect((await response.json()) as ApiError).toEqual({ error: 'Title is required' });
+        expect(await parseBody(ApiErrorSchema, response)).toEqual({ error: 'Title is required' });
       }
       expect((await tasksApi.listTasks()).map((task) => task.title)).toEqual(seedTitles);
     });
@@ -96,7 +91,7 @@ test.describe('Tasks API', { tag: '@api' }, () => {
       const remove = await tasksApi.delete(9999);
 
       expect(update.status()).toBe(404);
-      expect((await update.json()) as ApiError).toEqual({ error: 'Task not found' });
+      expect(await parseBody(ApiErrorSchema, update)).toEqual({ error: 'Task not found' });
       expect(remove.status()).toBe(404);
     });
 

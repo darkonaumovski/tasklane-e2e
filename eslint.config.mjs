@@ -28,8 +28,6 @@ export default defineConfig(
       'playwright/no-raw-locators': 'error',
       'playwright/prefer-web-first-assertions': 'error',
       'playwright/no-useless-await': 'error',
-      // assertIsTaskList() is a contract assertion that throws on failure.
-      'playwright/expect-expect': ['error', { assertFunctionNames: ['assertIsTaskList', 'assertIsTask'] }],
     },
   },
 );

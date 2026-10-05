@@ -1,8 +1,8 @@
 import type { Page, Route } from '@playwright/test';
+import { TaskListSchema } from '../../api/schemas';
 import { seedTitles } from '../../data/seed-tasks';
 import { buildTask } from '../../factories/task.factory';
 import { test, expect } from '../../fixtures';
-import type { Task } from '../../types/task';
 
 /**
  * Mocked UI tests: the browser's network calls are intercepted with page.route(), so
@@ -90,7 +90,7 @@ test.describe('Task list with a mocked network', { tag: '@mocked' }, () => {
     // Let the real request through, then add one task to what the server sent back.
     await routeTaskList(page, async (route) => {
       const response = await route.fetch();
-      const realTasks = (await response.json()) as Task[];
+      const realTasks = TaskListSchema.parse(await response.json());
       await route.fulfill({ response, json: [...realTasks, buildTask({ title: 'Injected by the test' })] });
     });
 

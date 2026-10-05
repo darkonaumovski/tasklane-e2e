@@ -57,7 +57,7 @@ tests/
 ├── fixtures/         Typed custom fixtures: page objects, API client, data isolation
 ├── pages/            Page Objects, one per screen (LoginPage, TasksPage)
 ├── components/       Reusable UI parts (TaskRow, ConfirmDialog)
-├── api/              API client and runtime response-contract checks
+├── api/              API client and zod response schemas
 ├── data/             Static test data (the seed tasks)
 ├── factories/        Builders for dynamic test data (buildTask)
 ├── config/           Environment variables and paths

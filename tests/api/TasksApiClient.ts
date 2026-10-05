@@ -1,6 +1,6 @@
 import type { APIRequestContext, APIResponse } from '@playwright/test';
 import type { Credentials, NewTask, Task, TaskUpdate } from '../types/task';
-import { assertIsTask, assertIsTaskList } from './task-contract';
+import { parseBody, TaskListSchema, TaskSchema } from './schemas';
 
 /**
  * Client for the Tasklane HTTP API, built on Playwright's APIRequestContext.
@@ -49,17 +49,13 @@ export class TasksApiClient {
   async listTasks(): Promise<Task[]> {
     const response = await this.list();
     await expectStatus(response, 200, 'GET /api/tasks');
-    const body: unknown = await response.json();
-    assertIsTaskList(body);
-    return body;
+    return parseBody(TaskListSchema, response);
   }
 
   async createTask(task: NewTask): Promise<Task> {
     const response = await this.create(task);
     await expectStatus(response, 201, 'POST /api/tasks');
-    const body: unknown = await response.json();
-    assertIsTask(body);
-    return body;
+    return parseBody(TaskSchema, response);
   }
 }
 

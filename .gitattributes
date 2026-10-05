@@ -1,0 +1,6 @@
+# Check out text files with LF on every OS. Without this, Git on Windows
+# (core.autocrlf=true) writes CRLF and `prettier --check` fails on every file.
+* text=auto eol=lf
+
+# Visual baselines must never be touched by line-ending conversion.
+*.png binary

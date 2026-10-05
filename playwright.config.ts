@@ -1,72 +1,63 @@
-import path from 'node:path';
 import { defineConfig, devices } from '@playwright/test';
-import dotenv from 'dotenv';
+import { env, paths } from './tests/config/env';
 
-// Load the test user (and PORT) the same way the server does: .env first, then .env.example.
-// Worker processes inherit these variables, so specs can read process.env too.
-dotenv.config({ path: [path.join(__dirname, '.env'), path.join(__dirname, '.env.example')], quiet: true });
-
-const baseURL = `http://localhost:${process.env.PORT ?? 3000}`;
-
-// Where the setup project saves the logged-in browser state (cookies + localStorage).
-// It is git-ignored: it contains a live session cookie.
-const authFile = 'playwright/.auth/user.json';
+/** Browser projects run everything under tests/specs except the browser-free API specs. */
+const browserProject = {
+  testDir: './tests/specs',
+  testIgnore: 'api/**',
+  dependencies: ['setup'],
+};
 
 export default defineConfig({
   testDir: './tests',
-  // Tests in a file run in parallel too. That's safe because every test gets its own
-  // copy of the server data (see the x-test-namespace fixture in tests/fixtures.ts).
+  outputDir: './test-results',
+
+  // Defaults, written down so nobody "fixes" a sync problem by raising them globally.
+  // A slow step should wait on a real signal (see TasksPage.waitForTasksLoaded).
+  timeout: 30_000,
+  expect: { timeout: 5_000 },
+
+  // Safe because every test gets its own server data (see tests/fixtures/index.ts).
   fullyParallel: true,
-  // Fail the CI build if someone accidentally commits test.only.
-  forbidOnly: !!process.env.CI,
-  retries: process.env.CI ? 2 : 0,
-  workers: process.env.CI ? 2 : undefined,
-  reporter: [['list'], ['html', { open: 'never' }]],
+  forbidOnly: env.isCI,
+  // Retries on CI only, to absorb infrastructure noise; a test that needed a retry is
+  // reported as "flaky", so it is surfaced rather than hidden. Locally a failure is a failure.
+  retries: env.isCI ? 2 : 0,
+  workers: env.isCI ? 2 : undefined,
+  reporter: env.isCI ? [['github'], ['list'], ['html', { open: 'never' }]] : [['list'], ['html', { open: 'never' }]],
+  metadata: { target: env.baseURL },
 
   use: {
-    // Lets specs call page.goto('/') instead of repeating the full URL.
-    baseURL,
-    // A trace is a recording of a test you can step through. Only record one when a
-    // test fails and gets retried, so passing runs stay fast.
+    baseURL: env.baseURL,
+    // Diagnostics are recorded on the first retry of a failing test, and only kept for failures.
     trace: 'on-first-retry',
+    video: 'on-first-retry',
     screenshot: 'only-on-failure',
   },
 
   projects: [
-    // 1. Log in once and save the session to authFile.
-    { name: 'setup', testMatch: /auth\.setup\.ts/ },
-
-    // 2. Pure API tests: no browser needed, so they run once, not once per browser.
-    { name: 'api', testDir: './tests/api' },
-
-    // 3. UI tests in each browser. `dependencies` makes them wait for setup, and
-    //    `storageState` starts every test already logged in.
+    { name: 'setup', testDir: './tests/setup', testMatch: /.*\.setup\.ts/ },
+    // No browser needed: runs once instead of once per browser.
+    { name: 'api', testDir: './tests/specs/api' },
     {
       name: 'chromium',
-      testDir: './tests/ui',
-      use: { ...devices['Desktop Chrome'], storageState: authFile },
-      dependencies: ['setup'],
+      ...browserProject,
+      use: { ...devices['Desktop Chrome'], storageState: paths.storageState },
     },
     {
       name: 'firefox',
-      testDir: './tests/ui',
-      use: { ...devices['Desktop Firefox'], storageState: authFile },
-      dependencies: ['setup'],
+      ...browserProject,
+      use: { ...devices['Desktop Firefox'], storageState: paths.storageState },
     },
     {
       name: 'mobile-chrome',
-      testDir: './tests/ui',
-      use: { ...devices['Pixel 7'], storageState: authFile },
-      dependencies: ['setup'],
+      ...browserProject,
+      use: { ...devices['Pixel 7'], storageState: paths.storageState },
     },
   ],
 
-  // Playwright starts the app before the tests and stops it afterwards.
-  // Locally it reuses a server you already started with `npm start`.
-  webServer: {
-    command: 'npm start',
-    url: baseURL,
-    reuseExistingServer: !process.env.CI,
-    timeout: 30_000,
-  },
+  // Start the local app unless BASE_URL points at a deployed environment.
+  webServer: env.startsLocalServer
+    ? { command: 'npm start', url: env.baseURL, reuseExistingServer: !env.isCI, timeout: 30_000 }
+    : undefined,
 });

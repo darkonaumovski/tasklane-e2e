@@ -1,70 +1,62 @@
 import { expect, type Locator, type Page } from '@playwright/test';
-import type { StatusFilter } from '../support/test-data';
+import { ConfirmDialog } from '../components/ConfirmDialog';
+import { TaskRow } from '../components/TaskRow';
+import type { StatusFilter } from '../types/task';
 
-/** A file built in memory, so tests don't need fixture files on disk. */
-export type InMemoryFile = { name: string; mimeType: string; buffer: Buffer };
-
-/** Page Object for the task list screen. */
+/** Page Object for the task list screen. Row-level actions live in TaskRow. */
 export class TasksPage {
+  readonly region: Locator;
   readonly heading: Locator;
   readonly newTaskInput: Locator;
   readonly addButton: Locator;
   readonly searchInput: Locator;
   readonly statusFilter: Locator;
+  readonly loadingStatus: Locator;
+  readonly errorMessage: Locator;
   readonly taskList: Locator;
   readonly taskItems: Locator;
   readonly taskTitles: Locator;
-  readonly errorMessage: Locator;
   readonly emptyState: Locator;
   readonly logoutButton: Locator;
-  readonly deleteDialog: Locator;
+  readonly deleteDialog: ConfirmDialog;
 
   constructor(readonly page: Page) {
-    this.heading = page.getByRole('heading', { name: 'My tasks' });
-    this.newTaskInput = page.getByLabel('New task');
-    this.addButton = page.getByRole('button', { name: 'Add task' });
-    this.searchInput = page.getByRole('searchbox', { name: 'Search' });
-    this.statusFilter = page.getByLabel('Status');
-    this.taskList = page.getByRole('list', { name: 'Tasks' });
-
-    // Chaining narrows the search: list items *inside* the task list only.
+    this.region = page.getByRole('region', { name: 'My tasks', exact: true });
+    this.heading = this.region.getByRole('heading', { name: 'My tasks', exact: true });
+    this.newTaskInput = this.region.getByLabel('New task', { exact: true });
+    this.addButton = this.region.getByRole('button', { name: 'Add task', exact: true });
+    this.searchInput = this.region.getByRole('searchbox', { name: 'Search', exact: true });
+    this.statusFilter = this.region.getByRole('combobox', { name: 'Status', exact: true });
+    this.loadingStatus = this.region.getByRole('status');
+    this.errorMessage = this.region.getByRole('alert');
+    this.taskList = this.region.getByRole('list', { name: 'Tasks', exact: true });
     this.taskItems = this.taskList.getByRole('listitem');
-
-    // The title <label> is shared by several roles, so a test id is the clearest
-    // way to grab "just the titles" for list comparisons.
+    // A title is a <label>, which has no role of its own: test id is the clear fallback
+    // for "just the titles, in order".
     this.taskTitles = this.taskList.getByTestId('task-title');
-
-    this.errorMessage = page.getByRole('alert');
-    this.emptyState = page.getByTestId('empty-state');
-    this.logoutButton = page.getByRole('button', { name: 'Log out' });
-
-    // <dialog> opened with showModal() has role "dialog", named by its heading.
-    this.deleteDialog = page.getByRole('dialog', { name: 'Delete task?' });
+    this.emptyState = this.region.getByText('No tasks match.', { exact: true });
+    this.logoutButton = this.region.getByRole('button', { name: 'Log out', exact: true });
+    // The modal lives outside the region (it's a top-layer <dialog>), so it gets the page.
+    this.deleteDialog = new ConfirmDialog(page, 'Delete task?', 'Delete');
   }
 
-  /** Opens the app and waits until the slow GET /api/tasks call has finished. */
+  /** Opens the app and waits until GET /api/tasks (1-2 s on the real server) has finished. */
   async goto() {
     await this.page.goto('/');
     await this.waitForTasksLoaded();
   }
 
   /**
-   * The app sets aria-busy="false" on the list once tasks have loaded (1-2 s).
-   * Waiting on that real signal replaces a fixed waitForTimeout(2000): it's never
-   * too short on a slow machine, and never wastes time on a fast one.
+   * The app sets aria-busy="false" on the list once loading finishes, successfully or not.
+   * Waiting on that real signal instead of a fixed sleep is never too short on a slow
+   * machine and never wastes time on a fast one.
    */
   async waitForTasksLoaded() {
     await expect(this.taskList).toHaveAttribute('aria-busy', 'false');
   }
 
-  /** One task row, found by its visible title. */
-  task(title: string): Locator {
-    return this.taskItems.filter({ hasText: title });
-  }
-
-  /** The "done" checkbox. Its accessible name is the task title, via <label for>. */
-  checkbox(title: string): Locator {
-    return this.page.getByRole('checkbox', { name: title, exact: true });
+  task(title: string): TaskRow {
+    return new TaskRow(this.taskList, title);
   }
 
   async addTask(title: string) {
@@ -72,39 +64,11 @@ export class TasksPage {
     await this.addButton.click();
   }
 
-  async editTask(currentTitle: string, newTitle: string) {
-    // Scoping to the row means "the Edit button of *this* task", not the first one on the page.
-    await this.task(currentTitle).getByRole('button', { name: 'Edit' }).click();
-    // In edit mode the row is redrawn, so we look up the edit box by its label.
-    const input = this.page.getByRole('textbox', { name: 'Edit title' });
-    await input.fill(newTitle);
-    await this.page.getByRole('button', { name: 'Save' }).click();
-  }
-
-  async attachFile(title: string, file: InMemoryFile) {
-    // setInputFiles works even though the real <input type=file> is visually hidden.
-    await this.task(title).getByLabel(`Attach file to ${title}`).setInputFiles(file);
-  }
-
-  async openDeleteDialog(title: string) {
-    await this.task(title).getByRole('button', { name: 'Delete' }).click();
-    await expect(this.deleteDialog).toBeVisible();
-  }
-
-  async confirmDelete() {
-    await this.deleteDialog.getByRole('button', { name: 'Delete' }).click();
-  }
-
-  async cancelDelete() {
-    await this.deleteDialog.getByRole('button', { name: 'Cancel' }).click();
-  }
-
   async search(term: string) {
     await this.searchInput.fill(term);
   }
 
   async filterByStatus(status: StatusFilter) {
-    // selectOption accepts the <option value="...">.
     await this.statusFilter.selectOption(status);
   }
 }

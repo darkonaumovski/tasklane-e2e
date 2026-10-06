@@ -77,6 +77,8 @@ tests/
 
 To create or refresh baselines after an intended UI change, add the **`update-snapshots`** label to the pull request. `.github/workflows/update-snapshots.yml` renders them on `ubuntu-24.04`, commits them to the PR branch and removes the label. Review the PNG diff in the PR, then pull the commit.
 
+Without a PR, run the workflow manually: **Actions → Update visual baselines → Run workflow**, picking the branch under "Use workflow from". The baselines are committed to that branch. Prefer a feature branch over `main`, so the new PNGs are reviewed in a PR.
+
 **Isolation.** Every test runs fully in parallel. A fixture sends an `x-test-namespace` header unique to the test, and the server keeps separate data per namespace. An auto fixture calls `POST /api/reset` before each test, so retries also start clean. No test depends on another or on execution order.
 
 **Authentication.** The `setup` project logs in through the UI once and saves `playwright/.auth/user.json` (git-ignored). Browser projects start from it. `login.spec.ts` opts out with an empty `storageState`. The `tasksApi` fixture logs in its own API session.
@@ -95,7 +97,7 @@ To create or refresh baselines after an intended UI change, add the **`update-sn
 
 `npm ci` → install browsers → `npm run check` → `npm test` → upload the HTML report (traces, screenshots, videos of failures).
 
-`.github/workflows/update-snapshots.yml` runs only when the `update-snapshots` label is added to a PR (see Visual regression).
+`.github/workflows/update-snapshots.yml` runs when the `update-snapshots` label is added to a PR, or manually from the Actions tab (see Visual regression).
 
 On CI, tests retry up to 2 times. A test that only passed on retry is reported as **flaky**, not hidden. Failures appear inline on the PR through the `github` reporter.
 

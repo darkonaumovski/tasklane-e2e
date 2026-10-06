@@ -27,7 +27,19 @@ export default defineConfig({
   // reported as "flaky", so it is surfaced rather than hidden. Locally a failure is a failure.
   retries: env.isCI ? 2 : 0,
   workers: env.isCI ? 2 : undefined,
-  reporter: env.isCI ? [['github'], ['list'], ['html', { open: 'never' }]] : [['list'], ['html', { open: 'never' }]],
+  reporter: [
+    ...(env.isCI ? [['github'] as const] : []),
+    ['list'],
+    ['html', { open: 'never' }],
+    // Raw results for the Allure report; `npm run test:allure` turns them into a report.
+    [
+      'allure-playwright',
+      {
+        resultsDir: 'allure-results',
+        environmentInfo: { os: process.platform, node: process.version, baseURL: env.baseURL },
+      },
+    ],
+  ],
   metadata: { target: env.baseURL },
 
   use: {

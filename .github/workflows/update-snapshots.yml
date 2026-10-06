@@ -1,33 +1,43 @@
 name: Update visual baselines
 
 # Renders visual-regression baselines on Linux (the same OS as the test workflow) and
-# commits them to the pull request branch. Trigger it by adding the `update-snapshots`
-# label to a PR; the label is removed when the job finishes. Review the committed PNGs
-# in the PR diff like any other change.
+# commits them to a branch. Two ways to trigger it:
+#   - Add the `update-snapshots` label to a PR: baselines are committed to the PR branch
+#     and the label is removed when the job finishes.
+#   - Run it manually from the Actions tab ("Run workflow"): baselines are committed to
+#     the branch picked in "Use workflow from". Prefer a feature branch over `main`.
+# Review the committed PNGs in the diff like any other change.
 on:
   pull_request:
     types: [labeled]
+  workflow_dispatch:
 
 permissions:
   contents: write
   pull-requests: write
   actions: write # to start the test workflow after committing baselines
 
+# Keyed on the branch, so a label run and a manual run on the same branch don't race.
 concurrency:
-  group: update-snapshots-${{ github.ref }}
+  group: update-snapshots-${{ github.head_ref || github.ref_name }}
   cancel-in-progress: true
 
 jobs:
   update:
-    # Only for this label, and only for branches in this repository (a fork's
-    # branch can't be pushed to with this token).
-    if: github.event.label.name == 'update-snapshots' && github.event.pull_request.head.repo.full_name == github.repository
+    # A manual run, or this label on a branch in this repository (a fork's branch
+    # can't be pushed to with this token).
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.label.name == 'update-snapshots' && github.event.pull_request.head.repo.full_name == github.repository)
     runs-on: ubuntu-24.04
     timeout-minutes: 15
+    env:
+      # head_ref is the PR branch on a label run; ref_name is the picked branch on a manual run.
+      BRANCH: ${{ github.head_ref || github.ref_name }}
     steps:
       - uses: actions/checkout@v5
         with:
-          ref: ${{ github.head_ref }}
+          ref: ${{ env.BRANCH }}
 
       - uses: actions/setup-node@v5
         with:
@@ -51,21 +61,22 @@ jobs:
             git config user.name 'github-actions[bot]'
             git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
             git commit -m 'Update visual baselines (Linux)'
-            git push
+            git push origin "HEAD:$BRANCH"
             echo "pushed=true" >> "$GITHUB_OUTPUT"
           fi
 
       # A push made with GITHUB_TOKEN deliberately triggers no workflows (to prevent loops),
       # so the test workflow would never see the new baselines. workflow_dispatch is the
-      # documented exception: start it explicitly on the PR branch.
+      # documented exception: start it explicitly on the branch.
       - name: Run the test workflow against the new baselines
         if: steps.commit.outputs.pushed == 'true'
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh workflow run playwright.yml --ref ${{ github.head_ref }}
+        run: gh workflow run playwright.yml --ref "$BRANCH"
 
       - name: Remove the label
-        if: always()
+        if: always() && github.event_name == 'pull_request'
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh pr edit ${{ github.event.pull_request.number }} --remove-label update-snapshots
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: gh pr edit "$PR_NUMBER" --remove-label update-snapshots

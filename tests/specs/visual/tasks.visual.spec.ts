@@ -8,7 +8,8 @@ import { routeTaskList } from '../../mocks/task-routes';
  * Fonts and anti-aliasing differ between operating systems, so baselines are rendered
  * on Linux only, the same OS as CI. On Windows or macOS these tests are skipped
  * rather than failing on a missing baseline. To create or refresh baselines, add the
- * `update-snapshots` label to the pull request (see .github/workflows/update-snapshots.yml).
+ * `update-snapshots` label to the pull request, or run that workflow manually from the
+ * Actions tab (see .github/workflows/update-snapshots.yml).
  *
  * Data is mocked so every run renders exactly the same content.
  */

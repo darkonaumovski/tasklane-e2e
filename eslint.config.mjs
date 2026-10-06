@@ -5,7 +5,18 @@ import playwright from 'eslint-plugin-playwright';
 import tseslint from 'typescript-eslint';
 
 export default defineConfig(
-  { ignores: ['app/**', 'node_modules/**', 'playwright-report/**', 'test-results/**', 'eslint.config.mjs'] },
+  {
+    ignores: [
+      'app/**',
+      'node_modules/**',
+      'playwright-report/**',
+      'test-results/**',
+      'allure-results/**',
+      'allure-report/**',
+      'eslint.config.mjs',
+      'allurerc.mjs',
+    ],
+  },
   eslint.configs.recommended,
   tseslint.configs.recommendedTypeChecked,
   {

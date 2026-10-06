@@ -19,20 +19,22 @@ Playwright starts the app automatically. To use the app yourself, run `npm start
 
 ## Commands
 
-| Command               | What it does                                                       |
-| --------------------- | ------------------------------------------------------------------ |
-| `npm test`            | Full suite, headless                                               |
-| `npm run test:smoke`  | Only `@smoke` tests: the critical paths, about 15 s                |
-| `npm run test:api`    | Only the API specs (no browser)                                    |
-| `npm run test:mocked` | Only the mocked-network UI specs                                   |
-| `npm run test:a11y`   | Only the axe accessibility scans (WCAG 2.1 A/AA)                   |
-| `npm run test:visual` | Only the visual regression tests (run on Linux; skipped elsewhere) |
-| `npm run test:ui`     | Playwright UI mode: watch, filter, time-travel through steps       |
-| `npm run test:headed` | Runs with visible browsers                                         |
-| `npm run test:debug`  | Opens the Playwright Inspector to step through a test              |
-| `npm run report`      | Opens the last HTML report                                         |
-| `npm run check`       | Type-check + lint + format check (what CI runs before the tests)   |
-| `npm run format`      | Formats the code with Prettier                                     |
+| Command                 | What it does                                                       |
+| ----------------------- | ------------------------------------------------------------------ |
+| `npm test`              | Full suite, headless                                               |
+| `npm run test:smoke`    | Only `@smoke` tests: the critical paths, about 15 s                |
+| `npm run test:api`      | Only the API specs (no browser)                                    |
+| `npm run test:mocked`   | Only the mocked-network UI specs                                   |
+| `npm run test:a11y`     | Only the axe accessibility scans (WCAG 2.1 A/AA)                   |
+| `npm run test:visual`   | Only the visual regression tests (run on Linux; skipped elsewhere) |
+| `npm run test:ui`       | Playwright UI mode: watch, filter, time-travel through steps       |
+| `npm run test:headed`   | Runs with visible browsers                                         |
+| `npm run test:debug`    | Opens the Playwright Inspector to step through a test              |
+| `npm run report`        | Opens the last HTML report                                         |
+| `npm run test:allure`   | Full suite, then builds the Allure report in `allure-report/`      |
+| `npm run report:allure` | Serves the last Allure report                                      |
+| `npm run check`         | Type-check + lint + format check (what CI runs before the tests)   |
+| `npm run format`        | Formats the code with Prettier                                     |
 
 Narrow a run with standard Playwright flags, for example `npx playwright test --project=chromium tests/specs/e2e/login.spec.ts`.
 
@@ -95,7 +97,9 @@ Without a PR, run the workflow manually: **Actions → Update visual baselines �
 
 `.github/workflows/playwright.yml` runs on pushes to `main`, pull requests and manual dispatch:
 
-`npm ci` → install browsers → `npm run check` → `npm test` → upload the HTML report (traces, screenshots, videos of failures).
+`npm ci` → install browsers → `npm run check` → `npm run test:allure` → upload the HTML report (traces, screenshots, videos of failures) and the Allure report.
+
+**Allure report.** Every run writes raw results to `allure-results/` through the `allure-playwright` reporter. `npm run test:allure` runs the suite through `allure run`, which builds `allure-report/index.html` from that run only (older results in the folder are ignored) and keeps the test exit code. The report is a single self-contained file (settings in `allurerc.mjs`): open it directly, or with `npm run report:allure`. On CI, download the `allure-report` artifact. Extra arguments go after `--`, for example `npm run test:allure -- --project=chromium`.
 
 `.github/workflows/update-snapshots.yml` runs when the `update-snapshots` label is added to a PR, or manually from the Actions tab (see Visual regression).
 

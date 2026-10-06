@@ -3,5 +3,7 @@ app/
 node_modules/
 package-lock.json
 playwright-report/
+allure-results/
+allure-report/
 test-results/
 playwright/.auth/

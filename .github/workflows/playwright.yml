@@ -45,8 +45,10 @@ jobs:
       #     BASE_URL: ${{ vars.STAGING_URL }}
       #     TEST_USER_EMAIL: ${{ secrets.TEST_USER_EMAIL }}
       #     TEST_USER_PASSWORD: ${{ secrets.TEST_USER_PASSWORD }}
+      # `allure run` wraps `playwright test`: it keeps the test exit code and builds the
+      # Allure report from this run's results, also when tests fail.
       - name: Run Playwright tests
-        run: npm test
+        run: npm run test:allure
 
       # The HTML report embeds traces, screenshots and videos of failed tests.
       - name: Upload HTML report
@@ -55,4 +57,13 @@ jobs:
         with:
           name: playwright-report
           path: playwright-report/
+          retention-days: 14
+
+      # A single self-contained index.html: download, unzip and open it in a browser.
+      - name: Upload Allure report
+        uses: actions/upload-artifact@v4
+        if: ${{ !cancelled() }}
+        with:
+          name: allure-report
+          path: allure-report/
           retention-days: 14
